@@ -20,14 +20,13 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential curl unzip bc git python3 rsync
+          sudo apt-get install -y build-essential curl unzip bc git python3 rsync wget
 
       - name: Install python-mkbootimg
         run: |
-         mkdir -p ~/python-mkbootimg
-         cd ~/python-mkbootimg
-         git clone https://github.com/anestisb/python-mkbootimg.git .
-         python3 -m pip install --user .   
+         wget https://github.com/anestisb/python-mkbootimg/archive/refs/heads/master.zip
+         unzip master.zip
+         python3 -m pip install --user python-mkbootimg-master   
 
       - name: Clone toolchains
         run: |
