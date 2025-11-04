@@ -30,17 +30,17 @@ jobs:
           sudo apt install -y git wget make bc bison flex
           sudo apt install -y libssl-dev build-essential python3 cpio libncurses5-dev lzop ccache
 
-      - name: Download Clang toolchain
+      - name: Download Clang toolchain (LineageOS)
         run: |
-          wget https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/lineage-20.0/${{ env.CLANG_VERSION }}.tar.gz -O clang.tar.gz
-          tar -xf clang.tar.gz -C ~/android/prebuilts/clang/host/linux-x86/
-
-      - name: Build kernel
-        working-directory: ${{ env.KERNEL_DIR }}
-        run: |
-          export PATH=~/android/prebuilts/clang/host/linux-x86/${{ env.CLANG_VERSION }}/bin:$PATH
-          make O=${{ env.OUT_DIR }} ${{ env.DEFCONFIG }}
-          make -j$(nproc) O=${{ env.OUT_DIR }}
+          mkdir -p ~/android/prebuilts/clang/host/linux-x86
+          git clone --depth=1 https://github.com/LineageOS/android_prebuilts_clang_host_linux-x86.git \
+           -b lineage-20.0 ~/android/prebuilts/clang/host/linux-x86/clang-r416183b
+           - name: Build kernel
+             working-directory: ${{ env.KERNEL_DIR }}
+             run: |
+             export PATH=~/android/prebuilts/clang/host/linux-x86/${{ env.CLANG_VERSION }}/bin:$PATH
+             make O=${{ env.OUT_DIR }} ${{ env.DEFCONFIG }}
+             make -j$(nproc) O=${{ env.OUT_DIR }}
 
       - name: Package boot.img
         run: |
