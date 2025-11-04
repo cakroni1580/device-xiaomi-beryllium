@@ -26,10 +26,10 @@ jobs:
         run: |
           mkdir -p ~/android-tools && cd ~/android-tools
           git clone https://android.googlesource.com/platform/system/extras
-          cd extras/mkbootimg
-          make -j$(nproc)
-          sudo cp mkbootimg /usr/local/bin/
-          sudo cp mkdtboimg /usr/local/bin/ || true   
+          cd extras
+          make -C mkbootimg -j$(nproc)
+          sudo cp mkbootimg/mkbootimg /usr/local/bin/
+          sudo cp mkbootimg/mkdtboimg /usr/local/bin/   
 
       - name: Clone toolchains
         run: |
