@@ -67,7 +67,7 @@ jobs:
       - name: Copy firmware
         run: |
           mkdir -p out/target/product/sdm845/vendor/firmware
-          cp -r firmware/* out/target/product/sdm845/vendor/firmware/
+          cp -r out/target/product/sdm845/vendor/firmware/* out/target/product/sdm845/vendor/firmware/
           echo "✅ Firmware copied"
 
       - name: Build images
