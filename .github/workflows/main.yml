@@ -61,9 +61,6 @@ jobs:
             frameworks/base \
             system/core \
           source build/envsetup.sh
-          # Set lunch combo untuk generic SDM845
-          export TARGET_PRODUCT=device-xiaomi-beryllium
-          export TARGET_BUILD_VARIANT=beryllium-userdebug
           echo "AOSP environment ready"
 
       - name: Copy firmware
