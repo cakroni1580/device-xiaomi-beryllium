@@ -38,7 +38,7 @@ jobs:
           repo sync -c -j$(nproc)
           source build/envsetup.sh
           lunch beryllium-userdebug
-          make -j$nproc vendor 2>&1 | tee logs/vendor.log
+          m dist vendor-snapshot | tee logs/vendor.log
 
       - name: Copy firmware
         run: |
