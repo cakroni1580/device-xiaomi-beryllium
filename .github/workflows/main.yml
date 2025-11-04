@@ -24,7 +24,12 @@ jobs:
 
       - name: Install python-mkbootimg
         run: |
-         python3 -m pip install abootimg   
+         mkdir -p ~/android-tools && cd ~/android-tools
+           git clone https://android.googlesource.com/platform/system/extras
+           cd extras/mkbootimg
+           make -j$(nproc)
+           sudo cp mkbootimg /usr/local/bin/
+           sudo cp mkdtboimg /usr/local/bin/   
 
       - name: Clone toolchains
         run: |
