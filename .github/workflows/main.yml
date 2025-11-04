@@ -61,7 +61,9 @@ jobs:
             build/make \
             vendor/google_devices/common \
             frameworks/base \
-            system/core 
+            system/core
+          source build/envsetup.sh
+          lunch beryllium-userdebug  
 
       - name: Build images
         run: |
