@@ -1,70 +1,80 @@
-name: Build GKI Kernel for Poco F1 (beryllium)
+name: Build GKI Environment for Poco F1 (Beryllium)
 
 on:
   workflow_dispatch:
   push:
-    branches: [ "main", "master" ]
+    branches:
+      - main
+      - lineage-21
 
 jobs:
-  build_kernel:
+  build-gki:
     runs-on: ubuntu-22.04
 
     env:
+      KERNEL_REPO: https://github.com/RONNIE158/linux
+      KERNEL_BRANCH: gki-5.4
+      DEVICE_REPO: https://github.com/cakroni1580/device-xiaomi-beryllium
+      DEVICE_BRANCH: main
       ARCH: arm64
-      SUBARCH: arm64
-      DEFCONFIG: beryllium_defconfig
-      CROSS_COMPILE: aarch64-linux-android-
-      CLANG_VERSION: clang-r416183b
-      KERNEL_DIR: kernel
-      OUT_DIR: out
+      DEVICE: beryllium
+      BUILD_DIR: ${{ github.workspace }}/build
+      TOOLCHAIN_DIR: ${{ github.workspace }}/toolchains
 
     steps:
-      - name: Checkout code
+      - name: Checkout device tree
         uses: actions/checkout@v4
         with:
-          submodules: true
+          repository: cakroni1580/device-xiaomi-beryllium
+          path: device
 
-      - name: Install dependencies
+      - name: Setup build environment
         run: |
           sudo apt update
-          sudo apt install -y git wget make bc bison flex
-          sudo apt install -y libssl-dev build-essential python3 cpio libncurses5-dev lzop ccache
+          sudo apt install -y git make python3 zip unzip bc bison flex \
+            build-essential libssl-dev libncurses5-dev \
+            ccache lzop wget curl
+          mkdir -p $BUILD_DIR $TOOLCHAIN_DIR
 
-      - name: Download Clang toolchain (LineageOS)
+      - name: Clone kernel source
         run: |
-          mkdir -p ~/android/prebuilts/clang/host/linux-x86
-          git clone --depth=1 https://github.com/LineageOS/android_prebuilts_clang_host_linux-x86.git \
-           -b lineage-20.0 ~/android/prebuilts/clang/host/linux-x86/clang-r416183b
-           - name: Build kernel
-             working-directory: ${{ env.KERNEL_DIR }}
-             run: |
-             export PATH=~/android/prebuilts/clang/host/linux-x86/${{ env.CLANG_VERSION }}/bin:$PATH
-             make O=${{ env.OUT_DIR }} ${{ env.DEFCONFIG }}
-             make -j$(nproc) O=${{ env.OUT_DIR }}
+          git clone --depth=1 -b $KERNEL_BRANCH $KERNEL_REPO $BUILD_DIR/kernel
 
-      - name: Package boot.img
+      - name: Clone toolchains
         run: |
-          mkbootimg \
-            --kernel ${{ env.OUT_DIR }}/arch/arm64/boot/Image.gz \
-            --ramdisk /dev/null \
-            --dtb ${{ env.OUT_DIR }}/arch/arm64/boot/dts/qcom/sdm845.dtb \
-            --cmdline "console=ttyMSM0,115200n8 earlycon=msm_geni_serial,0xA90000" \
-            --base 0x00000000 \
-            --pagesize 4096 \
-            --os_version 14 \
-            --os_patch_level 2025-01-05 \
-            -o boot.img
+          cd $TOOLCHAIN_DIR
+          git clone --depth=1 -b lineage-20.0 https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b clang
+          git clone --depth=1 -b lineage-19.1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 aarch64
+          git clone --depth=1 -b lineage-19.1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 arm
 
-      - name: Package vendor_dlkm modules
+      - name: Export toolchain paths
         run: |
-          mkdir -p vendor_dlkm/lib/modules
-          find ${{ env.OUT_DIR }} -name "*.ko" -exec cp {} vendor_dlkm/lib/modules/ \;
-          tar czf modules.tar.gz -C vendor_dlkm .
+          echo "PATH=$TOOLCHAIN_DIR/clang/bin:$TOOLCHAIN_DIR/aarch64/bin:$TOOLCHAIN_DIR/arm/bin:$PATH" >> $GITHUB_ENV
+          echo "CROSS_COMPILE=aarch64-linux-android-" >> $GITHUB_ENV
+          echo "CROSS_COMPILE_ARM32=arm-linux-androideabi-" >> $GITHUB_ENV
+          echo "CC=clang" >> $GITHUB_ENV
+
+      - name: Build GKI Kernel
+        run: |
+          cd $BUILD_DIR/kernel
+          make O=out ARCH=$ARCH beryllium_defconfig
+          make O=out ARCH=$ARCH CC=clang -j$(nproc)
+          cp out/arch/$ARCH/boot/Image.gz-dtb $GITHUB_WORKSPACE/Image.gz-dtb
+
+      - name: Build boot images (vendor_boot + dtbo)
+        run: |
+          cd $GITHUB_WORKSPACE/device
+          bash build_boot_images.sh $GITHUB_WORKSPACE/Image.gz-dtb
+          mkdir -p $GITHUB_WORKSPACE/output
+          cp out/boot.img out/vendor_boot.img out/dtbo.img $GITHUB_WORKSPACE/output || true
+
+      - name: Package output
+        run: |
+          cd $GITHUB_WORKSPACE/output
+          zip -r9 GKI_Beryllium_Output.zip .
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: PocoF1-GKI-Kernel
-          path: |
-            boot.img
-            modules.tar.gz
+          name: gki-beryllium-output
+          path: ${{ github.workspace }}/output/GKI_Beryllium_Output.zip
