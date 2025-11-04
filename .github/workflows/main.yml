@@ -29,17 +29,12 @@ jobs:
           git clone --depth=1 -b lineage-19.1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 aarch64
           git clone --depth=1 -b lineage-19.1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 arm
 
-      - name: Install repo tool
-        run: |
-         sudo curl -o /usr/local/bin/repo https://storage.googleapis.com/git-repo-downloads/repo
-         sudo chmod a+x /usr/local/bin/repo
-         repo --version
-    
       - name: Prepare prebuilt kernel
         run: |
           mkdir -p kernel/out
           cp prebuilt-kernel/android-upstream/Image.gz kernel/out/
           cp prebuilt-kernel/android-upstream/sdm845-xiaomi-beryllium.dtb kernel/out/
+          cp -r prebuilt-kernel/android-upstream/modules kernel/out/
           echo "✅ Prebuilt kernel ready"
 
       - name: Setup environment
@@ -51,46 +46,56 @@ jobs:
           export CLANG_TRIPLE=aarch64-linux-gnu-
           echo "Environment ready"
 
-      - name: Clone minimal AOSP for images
+      - name: Clone minimal AOSP for GKI modules & vendor
         run: |
           mkdir -p aosp && cd aosp
-          mkdir aosp-repo
-          repo init -u https://android.googlesource.com/platform/manifest -b master
+          repo init -u https://android.googlesource.com/platform/manifest -b master --depth=1
           git clone https://github.com/cakroni1580/android-local-manifests.git .repo/local_manifests -b master
           repo sync -c -j$(nproc) \
             build/make \
             frameworks/base \
-            system/core
-            device/generic/sdm845
+            system/core \
+            device/generic/sdm845 \
+            vendor/google_devices/common
           source build/envsetup.sh
-          # Jangan pake lunch lama, karena legacy combo bisa error
+          # Set lunch combo untuk generic SDM845
           export TARGET_PRODUCT=sdm845_generic
           export TARGET_BUILD_VARIANT=userdebug
-          export TARGET_BUILD_TYPE=release
           echo "AOSP environment ready"
 
-      - name: Build GKI modules & dtbo
+      - name: Copy firmware
+        run: |
+          mkdir -p out/target/product/sdm845/vendor/firmware
+          # Asumsi firmware a630 sudah di repo atau artifact
+          cp -r firmware/a630_* out/target/product/sdm845/vendor/firmware/
+
+      - name: Build images
         run: |
           mkdir -p out logs modules dtbo
           cp kernel/out/Image.gz out/
           cp kernel/out/sdm845-xiaomi-beryllium.dtb out/
-          # Build modules (example make, bisa sesuaikan path)
-          make -C device/generic/sdm845 modules -j$(nproc) 2>&1 | tee logs/modules.log
-          cp -r device/generic/sdm845/modules/* modules/ || true
-          # Build dtbo.img (example placeholder)
-          mkdtboimg --dtbo_list device/generic/sdm845/overlay/*.dtbo --output dtbo/dtbo.img || touch dtbo/dtbo.img
-          # Vendor DLKM (modules GKI)
-          cp -r modules/* out/ || touch out/vendor_dlkm.img
-          # Boot images
+          cp -r kernel/out/modules modules/
+
+          # Boot image
           mkbootimg --kernel out/Image.gz --dtb out/sdm845-xiaomi-beryllium.dtb \
             --base 0x80000000 --pagesize 4096 \
             --cmdline "console=ttyMSM0,115200n8 androidboot.hardware=beryllium" \
             --os_version 14.0.0 --output out/boot.img
+
+          # Vendor boot image
           mkbootimg --kernel out/Image.gz --dtb out/sdm845-xiaomi-beryllium.dtb \
             --base 0x80000000 --pagesize 4096 \
             --cmdline "console=ttyMSM0,115200n8 androidboot.hardware=beryllium" \
             --os_version 14.0.0 --output out/vendor_boot.img
-          echo "✅ GKI images built"
+
+          # Build vendor.img dari AOSP + firmware
+          make -C device/generic/sdm845 vendor -j$(nproc) 2>&1 | tee logs/vendor.log
+          cp out/target/product/sdm845/vendor.img out/
+
+          # Build dtbo.img (contoh placeholder, bisa sesuaikan overlay)
+          mkdtboimg --dtbo_list device/generic/sdm845/overlay/*.dtbo --output out/dtbo.img || touch out/dtbo.img
+
+          echo "✅ All GKI images generated"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -99,7 +104,7 @@ jobs:
           path: |
             out/boot.img
             out/vendor_boot.img
-            out/vendor_dlkm.img
-            dtbo/dtbo.img
+            out/vendor.img
+            out/dtbo.img
             modules/
             logs/
