@@ -34,7 +34,6 @@ jobs:
           mkdir -p kernel/out
           cp prebuilt-kernel/android-upstream/Image.gz kernel/out/
           cp prebuilt-kernel/android-upstream/sdm845-xiaomi-beryllium.dtb kernel/out/
-          cp -r prebuilt-kernel/android-upstream/modules kernel/out/
           echo "✅ Prebuilt kernel ready"
 
       - name: Setup environment
