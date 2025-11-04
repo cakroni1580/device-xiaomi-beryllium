@@ -6,10 +6,12 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
-    name: Build GKI Images for Beryllium
+  # -----------------------------
+  # Job 1: Build vendor.img + dtbo.img
+  # -----------------------------
+  build_vendor:
+    name: Build Vendor & DTBO
     runs-on: ubuntu-22.04
-
     steps:
       - name: Checkout device tree
         uses: actions/checkout@v4
@@ -21,38 +23,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential curl unzip bc git python3 rsync wget
-   
 
-      - name: Clone toolchains
-        run: |
-          mkdir -p ~/toolchains && cd ~/toolchains
-          git clone --depth=1 -b lineage-20.0 https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b clang
-          git clone --depth=1 -b lineage-19.1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 aarch64
-          git clone --depth=1 -b lineage-19.1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 arm
-
-      - name: Install repo tool
-        run: |
-         sudo curl -o /usr/local/bin/repo https://storage.googleapis.com/git-repo-downloads/repo
-         sudo chmod a+x /usr/local/bin/repo
-         repo --version
-      
-      - name: Prepare prebuilt kernel
-        run: |
-          mkdir -p kernel/out
-          cp prebuilt-kernel/android-upstream/Image.gz kernel/out/
-          cp prebuilt-kernel/android-upstream/sdm845-xiaomi-beryllium.dtb kernel/out/
-          echo "✅ Prebuilt kernel ready"
-
-      - name: Setup environment
-        run: |
-          export PATH=$PATH:~/toolchains/clang/bin:~/toolchains/aarch64/bin:~/toolchains/arm/bin
-          export ARCH=arm64
-          export CROSS_COMPILE=aarch64-linux-android-
-          export CROSS_COMPILE_ARM32=arm-linux-androideabi-
-          export CLANG_TRIPLE=aarch64-linux-gnu-
-          echo "Environment ready"
-
-      - name: Clone minimal AOSP for GKI modules & vendor
+      - name: Clone minimal AOSP for vendor
         run: |
           mkdir -p aosp && cd aosp
           repo init -u https://android.googlesource.com/platform/manifest -b android-14.0.0_r22 --depth=1
@@ -63,14 +35,53 @@ jobs:
             frameworks/base \
             device/generic/sdm845
           source build/envsetup.sh
-          echo "AOSP environment ready"
 
       - name: Copy firmware
         run: |
           mkdir -p out/target/product/sdm845/vendor/firmware
           cp -r firmware/* out/target/product/sdm845/vendor/firmware/
-          echo "✅ Firmware copied"
-   
+
+      - name: Build vendor.img
+        run: |
+          mkdir -p out logs dtbo
+          make -C device/generic/sdm845 vendor -j$(nproc) 2>&1 | tee logs/vendor.log
+          cp out/target/product/sdm845/vendor.img out/
+
+      - name: Build dtbo.img
+        run: |
+          mkbootimg.py \
+            --dtbo_list device/generic/sdm845/overlay/*.dtbo \
+            --output out/dtbo.img || touch out/dtbo.img
+
+      - name: Upload vendor artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: gki-vendor-dtbo
+          path: |
+            out/vendor.img
+            out/dtbo.img
+            logs/
+
+  # -----------------------------
+  # Job 2: Build boot.img & vendor_boot.img
+  # -----------------------------
+  build_boot:
+    name: Build Boot Images
+    runs-on: ubuntu-22.04
+    needs: build_vendor
+    steps:
+      - name: Checkout device tree
+        uses: actions/checkout@v4
+        with:
+          repository: cakroni1580/device-xiaomi-beryllium
+          ref: master
+
+      - name: Prepare prebuilt kernel
+        run: |
+          mkdir -p kernel/out
+          cp prebuilt-kernel/android-upstream/Image.gz kernel/out/
+          cp prebuilt-kernel/android-upstream/sdm845-xiaomi-beryllium.dtb kernel/out/
+
       - name: Setup Python mkbootimg
         run: |
           mkdir -p ~/android-tools && cd ~/android-tools
@@ -78,45 +89,35 @@ jobs:
           ln -s $PWD/mkbootimg/mkbootimg.py /usr/local/bin/mkbootimg.py
           ln -s $PWD/mkbootimg/repack_bootimg.py /usr/local/bin/repack_bootimg.py
           ln -s $PWD/mkbootimg/unpack_bootimg.py /usr/local/bin/unpack_bootimg.py
-      
-      - name: Build images
+
+      - name: Download vendor artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: gki-vendor-dtbo
+          path: out
+
+      - name: Build boot.img & vendor_boot.img
         run: |
-          mkdir -p out logs modules dtbo
+          mkdir -p out
           cp kernel/out/Image.gz out/
           cp kernel/out/sdm845-xiaomi-beryllium.dtb out/
 
-          # Boot image
           mkbootimg.py \
-             --kernel out/Image.gz --dtb out/sdm845-xiaomi-beryllium.dtb \
-             --base 0x80000000 --pagesize 4096 \
-             --cmdline "console=ttyMSM0,115200n8 androidboot.hardware=beryllium" \
-             --os_version 14.0.0 --output out/boot.img
+            --kernel out/Image.gz --dtb out/sdm845-xiaomi-beryllium.dtb \
+            --base 0x80000000 --pagesize 4096 \
+            --cmdline "console=ttyMSM0,115200n8 androidboot.hardware=beryllium" \
+            --os_version 14.0.0 --output out/boot.img
 
-          # Vendor boot image
           mkbootimg.py \
             --kernel out/Image.gz --dtb out/sdm845-xiaomi-beryllium.dtb \
             --base 0x80000000 --pagesize 4096 \
             --cmdline "console=ttyMSM0,115200n8 androidboot.hardware=beryllium" \
             --os_version 14.0.0 --output out/vendor_boot.img
 
-          # Build vendor.img dari AOSP + firmware
-          make -C device/generic/sdm845 vendor -j$(nproc) 2>&1 | tee logs/vendor.log
-          cp out/target/product/sdm845/vendor.img out/
-
-          # Build dtbo.img (contoh placeholder, bisa sesuaikan overlay)
-          mkbootimg.py \
-          --dtbo_list device/generic/sdm845/overlay/*.dtbo --output out/dtbo.img || touch out/dtbo.img
-
-          echo "✅ All GKI images generated"
-
-      - name: Upload artifacts
+      - name: Upload boot artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: gki-images-beryllium
+          name: gki-boot-images
           path: |
             out/boot.img
             out/vendor_boot.img
-            out/vendor.img
-            out/dtbo.img
-            modules/
-            logs/
