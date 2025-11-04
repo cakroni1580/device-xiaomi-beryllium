@@ -79,7 +79,6 @@ jobs:
 
           # Pastikan Python3 & pip ada
           python3 --version
-          pip3 install --user
 
           # Clone mkbootimg python repo
           mkdir -p ~/android-tools && cd ~/android-tools
