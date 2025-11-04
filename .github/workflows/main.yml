@@ -50,7 +50,7 @@ jobs:
       - name: Clone AOSP Android 14 GKI
         run: |
           mkdir aosp && cd aosp
-          repo init -u https://android.googlesource.com/platform/manifest -b android-14.0.0_r0.35
+          repo init -u https://android.googlesource.com/platform/manifest -b android-14.0.0_r1
           repo sync -c -j$(nproc)
 
       - name: Setup environment
