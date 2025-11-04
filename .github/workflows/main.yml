@@ -38,6 +38,7 @@ jobs:
           repo sync -c -j$(nproc) \
             build/make \
             system/core \
+            build/soong \
             frameworks/base \
             device/generic/sdm845
           source build/envsetup.sh
