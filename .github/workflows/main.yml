@@ -61,7 +61,6 @@ jobs:
             frameworks/base \
             system/core \
             device/generic/sdm845 \
-            vendor/google_devices/common
           source build/envsetup.sh
           # Set lunch combo untuk generic SDM845
           export TARGET_PRODUCT=sdm845_generic
