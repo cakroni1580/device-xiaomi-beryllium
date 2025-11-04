@@ -49,19 +49,16 @@ jobs:
         run: |
           mkdir -p aosp && cd aosp
           mkdir aosp-repo
-          cd aosp-repo
           repo init -u https://android.googlesource.com/platform/manifest -b master
           git clone https://github.com/cakroni1580/android-local-manifests.git .repo/local_manifests -b master
-          repo sync -j$nproc
-          source build/envsetup.sh
-          lunch beryllium-userdebug
-          make -j$nproc
           repo sync -c -j$(nproc) \
             device/xiaomi/beryllium \
             build/make \
             vendor/google_devices/common \
             frameworks/base \
             system/core
+          source build/envsetup.sh
+          lunch beryllium-userdebug 
 
       - name: Build images
         run: |
