@@ -66,8 +66,8 @@ jobs:
       - name: Copy firmware
         run: |
           mkdir -p out/target/product/sdm845/vendor/firmware
-          # Asumsi firmware a630 sudah di repo atau artifact
-          cp -r firmware/a630_* out/target/product/sdm845/vendor/firmware/
+          cp -r firmware/* out/target/product/sdm845/vendor/firmware/
+          echo "✅ Firmware copied"
 
       - name: Build images
         run: |
