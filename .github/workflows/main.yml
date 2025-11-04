@@ -28,7 +28,14 @@ jobs:
         run: |  
          sudo curl -o /usr/local/bin/repo https://storage.googleapis.com/git-repo-downloads/repo  
          sudo chmod a+x /usr/local/bin/repo  
-         repo --version  
+         repo --version
+
+         # Contoh pasang Go prebuilt dari AOSP
+         mkdir -p prebuilts/go
+         cd prebuilts/go
+         wget https://android.googlesource.com/platform/prebuilts/go/linux-x86/+archive/android-14.0.0_r22/go.tar.gz
+         tar -xf go.tar.gz
+         export PATH=$PWD/linux-x86/bin:$PATH   
          
       - name: Clone minimal AOSP for vendor
         run: |
