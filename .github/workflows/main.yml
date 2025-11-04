@@ -24,9 +24,7 @@ jobs:
 
       - name: Install python-mkbootimg
         run: |
-         wget https://github.com/anestisb/python-mkbootimg/archive/refs/heads/master.zip
-         unzip master.zip
-         python3 -m pip install --user python-mkbootimg-master   
+         python3 -m pip install abootimg   
 
       - name: Clone toolchains
         run: |
@@ -37,7 +35,9 @@ jobs:
 
       - name: Install repo tool
         run: |
-         python3 -m pip install abootimg
+         sudo curl -o /usr/local/bin/repo https://storage.googleapis.com/git-repo-downloads/repo
+         sudo chmod a+x /usr/local/bin/repo
+         repo --version
       
       - name: Prepare prebuilt kernel
         run: |
