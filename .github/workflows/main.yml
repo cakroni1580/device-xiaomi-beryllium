@@ -36,11 +36,12 @@ jobs:
           repo init -u https://android.googlesource.com/platform/manifest -b android-14.0.0_r22 --depth=1
           git clone https://github.com/cakroni1580/android-local-manifests.git .repo/local_manifests -b master
           repo sync -c -j$(nproc) \
-            build/make \
-            system/core \
-            build/soong \
-            frameworks/base \
-            device/generic/sdm845
+             build/make \
+             system/core \
+             build/soong \
+             build/blueprint \
+             frameworks/base \
+             device/generic/sdm845
           source build/envsetup.sh
           lunch beryllium-userdebug
           make -j$nproc vendor 2>&1 | tee logs/vendor.log
