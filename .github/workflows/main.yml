@@ -41,8 +41,8 @@ jobs:
             frameworks/base \
             device/generic/sdm845
           source build/envsetup.sh
-          cd device/generic/sdm845
-          make -j$(nproc) vendor 2>&1 | tee logs/vendor.log
+          lunch beryllium-userdebug
+          make -j$nproc vendor 2>&1 | tee logs/vendor.log
 
       - name: Copy firmware
         run: |
