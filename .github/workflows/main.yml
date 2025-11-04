@@ -60,7 +60,6 @@ jobs:
             build/make \
             frameworks/base \
             system/core \
-            device/generic/sdm845 \
           source build/envsetup.sh
           # Set lunch combo untuk generic SDM845
           export TARGET_PRODUCT=device-xiaomi-beryllium
