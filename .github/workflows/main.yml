@@ -1,0 +1,70 @@
+name: Build GKI Kernel for Poco F1 (beryllium)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main", "master" ]
+
+jobs:
+  build_kernel:
+    runs-on: ubuntu-22.04
+
+    env:
+      ARCH: arm64
+      SUBARCH: arm64
+      DEFCONFIG: beryllium_defconfig
+      CROSS_COMPILE: aarch64-linux-android-
+      CLANG_VERSION: clang-r416183b
+      KERNEL_DIR: kernel
+      OUT_DIR: out
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y git wget make bc bison flex
+          sudo apt install -y libssl-dev build-essential python3 cpio libncurses5-dev lzop ccache
+
+      - name: Download Clang toolchain
+        run: |
+          wget https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/lineage-20.0/${{ env.CLANG_VERSION }}.tar.gz -O clang.tar.gz
+          tar -xf clang.tar.gz -C ~/android/prebuilts/clang/host/linux-x86/
+
+      - name: Build kernel
+        working-directory: ${{ env.KERNEL_DIR }}
+        run: |
+          export PATH=~/android/prebuilts/clang/host/linux-x86/${{ env.CLANG_VERSION }}/bin:$PATH
+          make O=${{ env.OUT_DIR }} ${{ env.DEFCONFIG }}
+          make -j$(nproc) O=${{ env.OUT_DIR }}
+
+      - name: Package boot.img
+        run: |
+          mkbootimg \
+            --kernel ${{ env.OUT_DIR }}/arch/arm64/boot/Image.gz \
+            --ramdisk /dev/null \
+            --dtb ${{ env.OUT_DIR }}/arch/arm64/boot/dts/qcom/sdm845.dtb \
+            --cmdline "console=ttyMSM0,115200n8 earlycon=msm_geni_serial,0xA90000" \
+            --base 0x00000000 \
+            --pagesize 4096 \
+            --os_version 14 \
+            --os_patch_level 2025-01-05 \
+            -o boot.img
+
+      - name: Package vendor_dlkm modules
+        run: |
+          mkdir -p vendor_dlkm/lib/modules
+          find ${{ env.OUT_DIR }} -name "*.ko" -exec cp {} vendor_dlkm/lib/modules/ \;
+          tar czf modules.tar.gz -C vendor_dlkm .
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: PocoF1-GKI-Kernel
+          path: |
+            boot.img
+            modules.tar.gz
