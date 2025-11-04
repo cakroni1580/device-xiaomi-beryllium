@@ -21,15 +21,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential curl unzip bc git python3 rsync wget
-
-      - name: Install python-mkbootimg
-        run: |
-         mkdir -p ~/android-tools && cd ~/android-tools
-         git clone https://android.googlesource.com/platform/system/tools/mkbootimg
-         cd mkbootimg
-         make -j$(nproc)
-         sudo cp mkbootimg /usr/local/bin/
-         sudo cp mkdtboimg /usr/local/bin/ || true   
+   
 
       - name: Clone toolchains
         run: |
@@ -85,14 +77,25 @@ jobs:
           cp kernel/out/Image.gz out/
           cp kernel/out/sdm845-xiaomi-beryllium.dtb out/
 
+          # Pastikan Python3 & pip ada
+          python3 --version
+          pip3 install --user
+
+          # Clone mkbootimg python repo
+          mkdir -p ~/android-tools && cd ~/android-tools
+          git clone https://android.googlesource.com/platform/system/tools/mkbootimg
+          cd mkbootimg
+
           # Boot image
-          mkbootimg --kernel out/Image.gz --dtb out/sdm845-xiaomi-beryllium.dtb \
+          python3 mkbootimg.py \
+            --kernel out/Image.gz --dtb out/sdm845-xiaomi-beryllium.dtb \
             --base 0x80000000 --pagesize 4096 \
             --cmdline "console=ttyMSM0,115200n8 androidboot.hardware=beryllium" \
             --os_version 14.0.0 --output out/boot.img
 
           # Vendor boot image
-          mkbootimg --kernel out/Image.gz --dtb out/sdm845-xiaomi-beryllium.dtb \
+          python3 mkbootimg.py \
+            --kernel out/Image.gz --dtb out/sdm845-xiaomi-beryllium.dtb \
             --base 0x80000000 --pagesize 4096 \
             --cmdline "console=ttyMSM0,115200n8 androidboot.hardware=beryllium" \
             --os_version 14.0.0 --output out/vendor_boot.img
@@ -102,7 +105,8 @@ jobs:
           cp out/target/product/sdm845/vendor.img out/
 
           # Build dtbo.img (contoh placeholder, bisa sesuaikan overlay)
-          mkdtboimg --dtbo_list device/generic/sdm845/overlay/*.dtbo --output out/dtbo.img || touch out/dtbo.img
+          python3 mkbootimg.py \
+          --dtbo_list device/generic/sdm845/overlay/*.dtbo --output out/dtbo.img || touch out/dtbo.img
 
           echo "✅ All GKI images generated"
 
