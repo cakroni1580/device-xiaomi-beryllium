@@ -25,11 +25,9 @@ jobs:
             libncurses5-dev x11proto-core-dev libx11-dev libgl1-mesa-dev \
             libxml2-utils xsltproc unzip bc python3 rsync
 
-      
       - name: Clone toolchains
         run: |
           mkdir -p ~/toolchains && cd ~/toolchains
-
           git clone --depth=1 -b lineage-20.0 https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b clang
           git clone --depth=1 -b lineage-19.1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 aarch64
           git clone --depth=1 -b lineage-19.1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 arm
@@ -39,7 +37,7 @@ jobs:
           sudo curl -o /usr/local/bin/repo https://storage.googleapis.com/git-repo-downloads/repo
           sudo chmod a+x /usr/local/bin/repo
           repo --version
-    
+
       - name: Prepare kernel prebuilt
         run: |
           mkdir -p kernel/out
@@ -49,8 +47,10 @@ jobs:
 
       - name: Clone AOSP Android 14 GKI
         run: |
-          mkdir aosp && cd aosp
+          mkdir -p aosp && cd aosp
           repo init -u https://android.googlesource.com/platform/manifest -b android-14.0.0_r1
+          mkdir -p .repo/local_manifests
+          git clone https://github.com/pundiramit/android-local-manifests.git .repo/local_manifests -b main
           repo sync -c -j$(nproc)
 
       - name: Setup environment
@@ -60,24 +60,30 @@ jobs:
           export CROSS_COMPILE=aarch64-linux-android-
           export CROSS_COMPILE_ARM32=arm-linux-androideabi-
           export CLANG_TRIPLE=aarch64-linux-gnu-
+          source build/envsetup.sh
+          lunch beryllium-userdebug
           echo "Environment ready"
+
+      - name: Build Android
+        run: |
+          make -j$(nproc)
 
       - name: Build boot images
         run: |
-          mkdir out
+          mkdir -p out
           cp kernel/out/Image.gz out/
           cp kernel/out/sdm845-xiaomi-beryllium.dtb out/
 
           mkbootimg \
             --kernel out/Image.gz \
             --dtb out/sdm845-xiaomi-beryllium.dtb \
-            --base 0x00000000 \
+            --base 0x80000000 \
             --pagesize 4096 \
             --cmdline "console=ttyMSM0,115200n8 androidboot.hardware=beryllium" \
             --os_version 14.0.0 \
             --output boot.img
 
-          echo "Boot image done"
+          echo "✅ Boot image done"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
