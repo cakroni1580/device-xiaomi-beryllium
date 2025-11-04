@@ -25,6 +25,7 @@ jobs:
             libncurses5-dev x11proto-core-dev libx11-dev libgl1-mesa-dev \
             libxml2-utils xsltproc unzip bc python3 rsync
 
+      
       - name: Clone toolchains
         run: |
           mkdir -p ~/toolchains && cd ~/toolchains
@@ -33,6 +34,12 @@ jobs:
           git clone --depth=1 -b lineage-19.1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 aarch64
           git clone --depth=1 -b lineage-19.1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 arm
 
+      - name: Install repo tool
+        run: |
+          sudo curl -o /usr/local/bin/repo https://storage.googleapis.com/git-repo-downloads/repo
+          sudo chmod a+x /usr/local/bin/repo
+          repo --version
+    
       - name: Prepare kernel prebuilt
         run: |
           mkdir -p kernel/out
