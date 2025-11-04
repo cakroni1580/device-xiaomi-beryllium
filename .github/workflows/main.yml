@@ -1,111 +1,79 @@
-name: Build Generic Kernel Image (GKI) for beryllium
+name: Build GKI Android 14 for Poco F1
 
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-
-env:
-  DEVICE: beryllium
-  KERNEL_REPO: https://android.googlesource.com/kernel/common
-  KERNEL_BRANCH: android12-5.4
-  TOOLCHAIN_CLANG: https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b
-  TOOLCHAIN_GCC64: https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9
-  TOOLCHAIN_GCC32: https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9
-  CLANG_BRANCH: lineage-20.0
-  GCC_BRANCH: lineage-19.1
-  OUT_DIR: out
+    branches: [ master ]
 
 jobs:
-  build-gki:
+  build:
+    name: Build Android 14 GKI for Beryllium
     runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout device tree
         uses: actions/checkout@v4
         with:
-          submodules: false
+          repository: cakroni1580/device-xiaomi-beryllium
+          ref: master
 
       - name: Install dependencies
         run: |
-          sudo apt update
-          sudo apt install -y git bc bison flex build-essential zip curl wget \
-              device-tree-compiler cpio python3 zstd lz4 kmod libssl-dev e2fsprogs \
-              android-sdk-libsparse-utils fakeroot
+          sudo apt-get update
+          sudo apt-get install -y git-core gnupg flex bison build-essential \
+            zip curl zlib1g-dev gcc-multilib g++-multilib libc6-dev-i386 \
+            libncurses5-dev x11proto-core-dev libx11-dev libgl1-mesa-dev \
+            libxml2-utils xsltproc unzip bc python3 rsync
 
-      - name: Clone GKI kernel source
+      - name: Clone toolchains
         run: |
-          git clone --depth=1 -b $KERNEL_BRANCH $KERNEL_REPO kernel
+          mkdir -p ~/toolchains && cd ~/toolchains
 
-      - name: Fetch toolchains
-        run: |
-          mkdir -p toolchains
-          git clone --depth=1 -b $CLANG_BRANCH $TOOLCHAIN_CLANG toolchains/clang
-          git clone --depth=1 -b $GCC_BRANCH $TOOLCHAIN_GCC64 toolchains/gcc64
-          git clone --depth=1 -b $GCC_BRANCH $TOOLCHAIN_GCC32 toolchains/gcc32
+          git clone --depth=1 -b lineage-20.0 https://github.com/LineageOS/android_prebuilts_clang_kernel_linux-x86_clang-r416183b clang
+          git clone --depth=1 -b lineage-19.1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 aarch64
+          git clone --depth=1 -b lineage-19.1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 arm
 
-      - name: Setup PATH and environment
+      - name: Prepare kernel prebuilt
         run: |
-          echo "PATH=$PWD/toolchains/clang/bin:$PWD/toolchains/gcc64/bin:$PWD/toolchains/gcc32/bin:$PATH" >> $GITHUB_ENV
-          echo "CC=clang" >> $GITHUB_ENV
-          echo "CROSS_COMPILE=aarch64-linux-android-" >> $GITHUB_ENV
-          echo "CROSS_COMPILE_ARM32=arm-linux-androideabi-" >> $GITHUB_ENV
-          echo "CLANG_TRIPLE=aarch64-linux-gnu-" >> $GITHUB_ENV
+          mkdir -p kernel/out
+          cp prebuilt-kernel/android-upstream/Image.gz kernel/out/
+          cp prebuilt-kernel/android-upstream/sdm845-xiaomi-beryllium.dtb kernel/out/
+          echo "✅ Prebuilt kernel ready"
 
-      - name: Configure GKI kernel
-        working-directory: kernel
+      - name: Clone AOSP Android 14 GKI
         run: |
-          make O=../${OUT_DIR} gki_defconfig
-          # Apply small tweaks for SDM845 (if needed)
-          echo "CONFIG_BUILD_ARM64_DT_OVERLAY=y" >> ../${OUT_DIR}/.config
-          echo "CONFIG_ARCH_SDM845=y" >> ../${OUT_DIR}/.config
-          make O=../${OUT_DIR} olddefconfig
+          mkdir aosp && cd aosp
+          repo init -u https://android.googlesource.com/platform/manifest -b android-14.0.0_r0.35
+          repo sync -c -j$(nproc)
 
-      - name: Build GKI kernel
-        working-directory: kernel
+      - name: Setup environment
         run: |
-          make -j$(nproc) O=../${OUT_DIR} \
-            ARCH=arm64 CC=clang CROSS_COMPILE=aarch64-linux-android- \
-            CROSS_COMPILE_ARM32=arm-linux-androideabi- Image.gz modules dtbo.img
+          export PATH=$PATH:~/toolchains/clang/bin:~/toolchains/aarch64/bin:~/toolchains/arm/bin
+          export ARCH=arm64
+          export CROSS_COMPILE=aarch64-linux-android-
+          export CROSS_COMPILE_ARM32=arm-linux-androideabi-
+          export CLANG_TRIPLE=aarch64-linux-gnu-
+          echo "Environment ready"
 
-      - name: Create vendor_dlkm.img
+      - name: Build boot images
         run: |
-          mkdir -p vendor_dlkm_root/lib/modules
-          find ${OUT_DIR} -name '*.ko' -exec cp {} vendor_dlkm_root/lib/modules/ \;
-          mke2fs -t ext4 -L vendor_dlkm -b 4096 -d vendor_dlkm_root vendor_dlkm.img 256M
+          mkdir out
+          cp kernel/out/Image.gz out/
+          cp kernel/out/sdm845-xiaomi-beryllium.dtb out/
 
-      - name: Create boot and vendor_boot (GKI layout)
-        run: |
-          mkdir -p ramdisk
-          echo "init: Booting into GKI..." > ramdisk/init
-          chmod +x ramdisk/init
-          (cd ramdisk && find . | cpio -H newc -o | gzip > ../ramdisk.cpio.gz)
-          
-          # boot.img (GKI generic ramdisk)
-          mkbootimg --kernel ${OUT_DIR}/arch/arm64/boot/Image.gz \
-                    --ramdisk ramdisk.cpio.gz \
-                    --os_version 12.0.0 --os_patch_level 2025-11-01 \
-                    --header_version 4 --base 0x00000000 --pagesize 4096 \
-                    -o boot.img
-          
-          # vendor_boot.img (placeholder vendor ramdisk)
-          mkdir -p vendor_ramdisk
-          echo "placeholder vendor ramdisk" > vendor_ramdisk/init
-          (cd vendor_ramdisk && find . | cpio -H newc -o | gzip > ../vendor_ramdisk.cpio.gz)
-          mkbootimg --header_version 4 --vendor_ramdisk vendor_ramdisk.cpio.gz \
-                    --dtb ${OUT_DIR}/arch/arm64/boot/dts/qcom/sdm845.dtb \
-                    --vendor_cmdline "console=ttyMSM0,115200n8 androidboot.hardware=qcom" \
-                    -o vendor_boot.img
+          mkbootimg \
+            --kernel out/Image.gz \
+            --dtb out/sdm845-xiaomi-beryllium.dtb \
+            --base 0x00000000 \
+            --pagesize 4096 \
+            --cmdline "console=ttyMSM0,115200n8 androidboot.hardware=beryllium" \
+            --os_version 14.0.0 \
+            --output boot.img
+
+          echo "Boot image done"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: gki-build-output
-          path: |
-            boot.img
-            vendor_boot.img
-            vendor_dlkm.img
-            ${OUT_DIR}/arch/arm64/boot/Image.gz
-            ${OUT_DIR}/System.map
-            ${OUT_DIR}/dtbo.img
+          name: gki-bootimg-beryllium
+          path: boot.img
