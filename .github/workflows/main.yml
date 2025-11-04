@@ -20,16 +20,11 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential curl unzip bc git python3 rsync
+          sudo apt-get install -y build-essential curl unzip bc git python3 rsync pip
 
       - name: Install mkbootimg & mkdtboimg
         run: |
-          mkdir -p ~/android-tools && cd ~/android-tools
-          git clone https://android.googlesource.com/platform/system/extras
-          cd extras
-          make -C mkbootimg -j$(nproc)
-          sudo cp mkbootimg/mkbootimg /usr/local/bin/
-          sudo cp mkbootimg/mkdtboimg /usr/local/bin/   
+          pip install python-mkbootimg   
 
       - name: Clone toolchains
         run: |
