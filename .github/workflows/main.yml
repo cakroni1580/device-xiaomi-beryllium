@@ -34,7 +34,7 @@ jobs:
         run: |
           mkdir -p aosp && cd aosp
           repo init -u https://android.googlesource.com/platform/manifest -b master
-          git clone https://github.com/cakroni1580/android-local-manifests.git .repo/local_manifests -b master
+          git clone https://github.com/cakroni1580/android-local-manifests.git .repo/local_manifests -b vendor
           repo sync -c -j$(nproc)
           source build/envsetup.sh
           lunch beryllium-userdebug
