@@ -49,7 +49,7 @@ jobs:
         run: |
           mkdir -p aosp && cd aosp
           mkdir aosp-repo
-          repo init -u https://android.googlesource.com/platform/manifest -b master
+          repo init -u https://android.googlesource.com/platform/manifest -b master --depth=1
           git clone https://github.com/cakroni1580/android-local-manifests.git .repo/local_manifests -b master
           repo sync -c -j$(nproc) \
             device/xiaomi/beryllium \
