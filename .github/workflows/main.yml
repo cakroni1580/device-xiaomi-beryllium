@@ -60,8 +60,7 @@ jobs:
             build/make \
             system/core \
             frameworks/base \
-            device/generic/sdm845 \
-            vendor/google_devices/common
+            device/generic/sdm845
           source build/envsetup.sh
           echo "AOSP environment ready"
 
