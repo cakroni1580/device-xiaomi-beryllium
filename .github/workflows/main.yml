@@ -54,9 +54,14 @@ jobs:
       - name: Clone minimal AOSP for GKI modules & vendor
         run: |
           mkdir -p aosp && cd aosp
-          repo init -u https://android.googlesource.com/platform/manifest -b android-14.0.0_r22
+          repo init -u https://android.googlesource.com/platform/manifest -b android-14.0.0_r22 --depth=1
           git clone https://github.com/cakroni1580/android-local-manifests.git .repo/local_manifests -b master
-          repo sync -c -j$(nproc)
+          repo sync -c -j$(nproc) \
+            build/make \
+            system/core \
+            frameworks/base \
+            device/generic/sdm845 \
+            vendor/google_devices/common
           source build/envsetup.sh
           echo "AOSP environment ready"
 
