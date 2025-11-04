@@ -22,6 +22,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential curl unzip bc git python3 rsync
 
+      - name: Install mkbootimg & mkdtboimg
+        run: |
+          sudo apt-get install -y git unzip
+          mkdir -p ~/android-tools && cd ~/android-tools
+          # Clone mkbootimg dari AOSP tools
+          git clone https://android.googlesource.com/platform/system/core
+          cd system/core/mkbootimg
+          make -j$(nproc)
+          sudo cp mkbootimg/mkbootimg /usr/local/bin/
+          sudo cp mkbootimg/mkdtboimg /usr/local/bin/ || true   
+
       - name: Clone toolchains
         run: |
           mkdir -p ~/toolchains && cd ~/toolchains
@@ -69,11 +80,6 @@ jobs:
           mkdir -p out/target/product/sdm845/vendor/firmware
           cp -r firmware/* out/target/product/sdm845/vendor/firmware/
           echo "✅ Firmware copied"
-
-      - name: Install mkbootimg and mkdtboimg
-        run: |
-         sudo apt-get update
-         sudo apt-get install -y android-sdk-libsparse-utils
    
       - name: Build images
         run: |
