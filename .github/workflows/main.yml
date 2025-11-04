@@ -75,7 +75,6 @@ jobs:
           mkdir -p out logs modules dtbo
           cp kernel/out/Image.gz out/
           cp kernel/out/sdm845-xiaomi-beryllium.dtb out/
-          cp -r kernel/out/modules modules/
 
           # Boot image
           mkbootimg --kernel out/Image.gz --dtb out/sdm845-xiaomi-beryllium.dtb \
