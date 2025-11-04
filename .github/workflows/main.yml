@@ -41,6 +41,7 @@ jobs:
             frameworks/base \
             device/generic/sdm845
           source build/envsetup.sh
+          make -C vendor -j$(nproc) 2>&1 | tee logs/vendor.log
 
       - name: Copy firmware
         run: |
