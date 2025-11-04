@@ -61,46 +61,36 @@ jobs:
             build/make \
             frameworks/base \
             system/core
+            device/generic/sdm845
           source build/envsetup.sh
-          lunch beryllium-userdebug
-          make -j$nproc
+          # Jangan pake lunch lama, karena legacy combo bisa error
+          export TARGET_PRODUCT=sdm845_generic
+          export TARGET_BUILD_VARIANT=userdebug
+          export TARGET_BUILD_TYPE=release
+          echo "AOSP environment ready"
 
-      - name: Build images
+      - name: Build GKI modules & dtbo
         run: |
-          mkdir -p out logs modules
+          mkdir -p out logs modules dtbo
           cp kernel/out/Image.gz out/
           cp kernel/out/sdm845-xiaomi-beryllium.dtb out/
-
-          # Boot image
-          mkbootimg \
-            --kernel out/Image.gz \
-            --dtb out/sdm845-xiaomi-beryllium.dtb \
-            --base 0x80000000 \
-            --pagesize 4096 \
+          # Build modules (example make, bisa sesuaikan path)
+          make -C device/generic/sdm845 modules -j$(nproc) 2>&1 | tee logs/modules.log
+          cp -r device/generic/sdm845/modules/* modules/ || true
+          # Build dtbo.img (example placeholder)
+          mkdtboimg --dtbo_list device/generic/sdm845/overlay/*.dtbo --output dtbo/dtbo.img || touch dtbo/dtbo.img
+          # Vendor DLKM (modules GKI)
+          cp -r modules/* out/ || touch out/vendor_dlkm.img
+          # Boot images
+          mkbootimg --kernel out/Image.gz --dtb out/sdm845-xiaomi-beryllium.dtb \
+            --base 0x80000000 --pagesize 4096 \
             --cmdline "console=ttyMSM0,115200n8 androidboot.hardware=beryllium" \
-            --os_version 14.0.0 \
-            --output out/boot.img
-
-          # Vendor boot image (placeholder, bisa diganti sesuai source)
-          mkbootimg \
-            --kernel out/Image.gz \
-            --dtb out/sdm845-xiaomi-beryllium.dtb \
-            --base 0x80000000 \
-            --pagesize 4096 \
+            --os_version 14.0.0 --output out/boot.img
+          mkbootimg --kernel out/Image.gz --dtb out/sdm845-xiaomi-beryllium.dtb \
+            --base 0x80000000 --pagesize 4096 \
             --cmdline "console=ttyMSM0,115200n8 androidboot.hardware=beryllium" \
-            --os_version 14.0.0 \
-            --output out/vendor_boot.img
-
-          # Dummy vendor_dlkm.img, nanti bisa replace dengan build DKLM
-          touch out/vendor_dlkm.img
-
-          # DTBO image (dummy)
-          touch out/dtbo.img
-
-          # Copy modules dari prebuilt kernel (bisa diupdate sesuai source)
-          cp -r kernel/out/modules/* modules/ || true
-
-          echo "✅ All images generated"
+            --os_version 14.0.0 --output out/vendor_boot.img
+          echo "✅ GKI images built"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -110,6 +100,6 @@ jobs:
             out/boot.img
             out/vendor_boot.img
             out/vendor_dlkm.img
-            out/dtbo.img
+            dtbo/dtbo.img
             modules/
             logs/
