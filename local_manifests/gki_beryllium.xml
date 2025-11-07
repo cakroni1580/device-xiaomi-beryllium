@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>  
 <manifest>  
-  <default revision="refs/tags/android-platform-14.0.0_r23"  
+  <default revision="master"  
            remote="aosp"  
            sync-j="4" />  
 
