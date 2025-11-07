@@ -34,24 +34,12 @@
   <!-- ========================= -->
 
   <!-- System core (init, ueventd, etc) -->
-  <project path="system/core"
-           name="platform/system/core"
-           groups="pdk"
-           replace="true" />
-
+  
   <!-- mkbootimg (required for vendor_boot & dtbo) -->
-  <project path="system/tools/mkbootimg"
-           name="platform/system/tools/mkbootimg"
-           replace="true" />
 
   <!-- Clang prebuilt -->
-  <project path="prebuilts/clang/host/linux-x86"
-           name="platform/prebuilts/clang/host/linux-x86"
-           replace="true" />
-
+  
   <!-- Prebuilt GKI kernels folder -->
-  <project path="prebuilts/kernel"
-           name="platform/prebuilts/kernel"
-           replace="true" />
+  
 
 </manifest>
