@@ -71,23 +71,13 @@ jobs:
           sudo docker system prune -af || true
           df -h
     
-      - name: Prepare AOSP dir
+      - name: Prepare AOSP cync
         run: |
           mkdir -p aosp
           cd aosp
           repo init -u https://android.googlesource.com/kernel/manifest -b common-android14-6.1 --depth=1
-
-      - name: Copy Manifests
-        run: |
-          cd aosp
-          mkdir -p .repo/local_manifests
-          cp -r $GITHUB_WORKSPACE/local_manifests/* .repo/local_manifests/
-
-      - name: Sync AOSP
-        run: |
-          cd aosp
-          repo sync -c -j4 --no-tags --no-clone-bundle --optimized-fetch --prune --fail-fast \
-          --force-sync
+          git clone https://github.com/cakroni1580/android-local-manifests.git .repo/local_manifests -b master
+          repo sync -c -j$(nproc)
 
       - name: Build vendor.img
         run: |
