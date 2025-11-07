@@ -76,7 +76,12 @@ jobs:
           mkdir -p aosp
           cd aosp
           repo init -u https://android.googlesource.com/platform/manifest -b android-platform-14.0.0_r23 --depth=1
-          git clone https://github.com/cakroni1580/android-local-manifests.git .repo/local_manifests -b master
+        
+      - name: Inject local manifests
+        run: |
+          cd aosp
+          mkdir -p .repo/local_manifests
+          cp -r $GITHUB_WORKSPACE/local_manifests/* .repo/local_manifests/
           repo sync -c --no-tags --optimized-fetch --prune --force-sync --depth=1 -j4 
 
       - name: Build vendor.img
