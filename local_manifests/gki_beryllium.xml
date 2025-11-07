@@ -12,19 +12,22 @@
            name="android_device_generic_sdm845"
            revision="main"
            remote="aospm"
-           groups="default" />
+           groups="default"
+           replace="true" />
 
   <project path="external/tinyhal"
            name="tinyhal"
            revision="master"
            remote="aospm"
-           groups="default" />
+           groups="default"
+           replace="true" />
 
   <project path="external/vibrator-ff"
            name="external_vibrator-ff"
            revision="main"
            remote="aospm"
-           groups="default" />
+           groups="default"
+           replace="true" />
 
 
   <!-- ========================= -->
@@ -34,23 +37,28 @@
   <!-- Core build system -->
   <project path="build/make"
            name="platform/build"
-           groups="pdk" />
+           groups="pdk"
+           replace="true" />
 
   <!-- System core (init, ueventd, etc) -->
   <project path="system/core"
            name="platform/system/core"
-           groups="pdk" />
+           groups="pdk"
+           replace="true" />
 
   <!-- mkbootimg (required for vendor_boot, dtbo) -->
   <project path="system/tools/mkbootimg"
-           name="platform/system/tools/mkbootimg" />
+           name="platform/system/tools/mkbootimg"
+           replace="true" />
 
-  <!-- Clang prebuilt -->
+  <!-- Clang prebuilts -->
   <project path="prebuilts/clang/host/linux-x86"
-           name="platform/prebuilts/clang/host/linux-x86" />
+           name="platform/prebuilts/clang/host/linux-x86"
+           replace="true" />
 
-  <!-- Prebuilt GKI kernels folder (references Image.gz + modules) -->
+  <!-- Prebuilt GKI kernels (Image.gz + modules) -->
   <project path="prebuilts/kernel"
-           name="platform/prebuilts/kernel" />
+           name="platform/prebuilts/kernel"
+           replace="true" />
 
 </manifest>
