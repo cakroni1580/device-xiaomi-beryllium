@@ -32,12 +32,12 @@ jobs:
           sudo curl -o /usr/local/bin/repo https://storage.googleapis.com/git-repo-downloads/repo  
           sudo chmod a+x /usr/local/bin/repo  
 
-      - name: Add Swap (8GB) to prevent OOM
+      - name: Add extra swap
         run: |
-          sudo fallocate -l 8G /swapfile
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
+         sudo fallocate -l 8G /swapfile2
+         sudo chmod 600 /swapfile2
+         sudo mkswap /swapfile2
+         sudo swapon /swapfile2
 
 
       - name: Init minimal AOSP for vendor
