@@ -30,10 +30,6 @@
 
 
   <!-- ========================= -->
-  <remove-project name="device/google" />
-  <remove-project name="kernel/google" />
-  <remove-project name="platform/prebuilts" />
-  <remove-project name="platform/hardware/google" />
   <!-- ========================= -->
 
   <!-- System core (init, ueventd, etc) -->
