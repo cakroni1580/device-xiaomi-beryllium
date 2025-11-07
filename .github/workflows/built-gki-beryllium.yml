@@ -75,7 +75,7 @@ jobs:
         run: |
           mkdir -p aosp && cd aosp
           mkdir -p .repo/local_manifests
-          cp -r $GITHUB_WORKSPACE/local_manifests/* .repo/local_manifests/ -b master
+          cp -r $GITHUB_WORKSPACE/local_manifests/* .repo/local_manifests/
           repo sync -c --no-tags --optimized-fetch --prune --force-sync -j4 
 
       - name: Build vendor.img
