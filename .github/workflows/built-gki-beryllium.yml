@@ -1,0 +1,152 @@
+name: Build GKI Images for Poco F1
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ master ]
+
+jobs:
+
+  # ----------------------------
+  # Job 1: Build vendor + dtbo
+  # ----------------------------
+  build_vendor:
+    name: Build Vendor & DTBO
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout device tree
+        uses: actions/checkout@v4
+        with:
+          repository: cakroni1580/device-xiaomi-beryllium
+          ref: master
+
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential curl unzip bc git python3 rsync wget ccache
+
+      - name: Install repo tool  
+        run: |  
+          sudo curl -o /usr/local/bin/repo https://storage.googleapis.com/git-repo-downloads/repo  
+          sudo chmod a+x /usr/local/bin/repo  
+
+      - name: Add Swap (8GB) to prevent OOM
+        run: |
+          sudo fallocate -l 8G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+
+
+      - name: Init minimal AOSP for vendor
+        run: |
+          mkdir -p aosp && cd aosp
+          repo init -u https://android.googlesource.com/platform/manifest -b master --depth=1
+
+
+      - name: Apply local manifests (including minimal GKI)
+        run: |
+          cd aosp
+          mkdir -p .repo/local_manifests
+          cp -r $GITHUB_WORKSPACE/local_manifests/* .repo/local_manifests/
+
+      - name: Repo Sync (RAM-safe)
+        run: |
+          cd aosp
+          repo sync -c -j4 --no-clone-bundle --optimized-fetch --prune --no-tags
+
+
+      - name: Build vendor.img
+        run: |
+          cd aosp
+          source build/envsetup.sh
+          lunch beryllium-userdebug
+          m vendorimage -j4
+          cp out/target/product/beryllium/vendor.img $GITHUB_WORKSPACE/vendor.img
+
+      - name: Build vendor_dlkm.img
+        run: |
+          cd aosp
+          m vendor_dlkmimage -j4
+          cp out/target/product/beryllium/vendor_dlkm.img $GITHUB_WORKSPACE/vendor_dlkm.img
+
+
+      - name: Build dtbo.img
+        run: |
+          cd aosp
+          m dtboimage -j4
+          cp out/target/product/beryllium/dtbo.img $GITHUB_WORKSPACE/dtbo.img
+
+
+      - name: Upload vendor artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: gki_vendor_output
+          path: |
+            vendor.img
+            vendor_dlkm.img
+            dtbo.img
+
+
+  # ----------------------------
+  # Job 2: Build boot + vendor_boot
+  # ----------------------------
+  build_boot:
+    name: Build Boot Images
+    runs-on: ubuntu-22.04
+    needs: build_vendor
+
+    steps:
+      - name: Checkout beryllium device tree
+        uses: actions/checkout@v4
+        with:
+          repository: cakroni1580/device-xiaomi-beryllium
+          ref: master
+
+      - name: Prepare mkbootimg
+        run: |
+          mkdir -p ~/tools && cd ~/tools
+          git clone https://android.googlesource.com/platform/system/tools/mkbootimg
+          sudo ln -s $PWD/mkbootimg/mkbootimg.py /usr/local/bin/mkbootimg.py
+
+      - name: Download vendor artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: gki_vendor_output
+          path: out
+
+      - name: Copy prebuilt kernel
+        run: |
+          mkdir -p kernel
+          cp prebuilt-kernel/Image.gz kernel/
+          cp prebuilt-kernel/sdm845-xiaomi-beryllium.dtb kernel/
+
+      - name: Build boot.img
+        run: |
+          mkbootimg.py \
+            --kernel kernel/Image.gz \
+            --dtb kernel/sdm845-xiaomi-beryllium.dtb \
+            --base 0x80000000 --pagesize 4096 \
+            --cmdline "console=ttyMSM0,115200n8 androidboot.hardware=beryllium" \
+            --os_version 14.0.0 \
+            --output boot.img
+
+      - name: Build vendor_boot.img
+        run: |
+          mkbootimg.py \
+            --kernel kernel/Image.gz \
+            --dtb kernel/sdm845-xiaomi-beryllium.dtb \
+            --base 0x80000000 --pagesize 4096 \
+            --cmdline "console=ttyMSM0,115200n8 androidboot.hardware=beryllium" \
+            --os_version 14.0.0 \
+            --output vendor_boot.img
+
+      - name: Upload boot artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: gki_boot_output
+          path: |
+            boot.img
+            vendor_boot.img
