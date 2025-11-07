@@ -32,13 +32,25 @@ jobs:
           sudo curl -o /usr/local/bin/repo https://storage.googleapis.com/git-repo-downloads/repo  
           sudo chmod a+x /usr/local/bin/repo  
 
-      - name: Add extra swap
+      - name: Free disk space
         run: |
-         sudo fallocate -l 8G /swapfile2
-         sudo chmod 600 /swapfile2
-         sudo mkswap /swapfile2
-         sudo swapon /swapfile2
-
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/lib/jvm
+          sudo rm -rf /opt/hostedtoolcache
+          sudo rm -rf /opt/az
+          sudo rm -rf /opt/microsoft
+          sudo docker system prune -af || true
+          df -h
+    
+      - name: Add swap
+        run: |
+          sudo dd if=/dev/zero of=/swapfile bs=1M count=8192
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          free -h
 
       - name: Init minimal AOSP for vendor
         run: |
@@ -55,8 +67,7 @@ jobs:
       - name: Repo Sync (RAM-safe)
         run: |
           cd aosp
-          repo sync -c -j4 --no-clone-bundle --optimized-fetch --prune --no-tags
-
+          repo sync -c -j4 --no-tags --no-clone-bundle --optimized-fetch --prune --fail-fast
 
       - name: Build vendor.img
         run: |
