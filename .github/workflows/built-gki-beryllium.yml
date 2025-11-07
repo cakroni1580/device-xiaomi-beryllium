@@ -52,10 +52,11 @@ jobs:
           sudo swapon /swapfile
           free -h
 
-      - name: Init minimal AOSP for vendor
+      - name: Apply platform manifests (including minimal GKI)
         run: |
-          mkdir -p aosp && cd aosp
-          repo init -u https://android.googlesource.com/platform/manifest -b master --depth=1
+          cd aosp
+          mkdir -p .repo/platform_manifests
+          cp -r $GITHUB_WORKSPACE/platform_manifests/* .repo/platform_manifests/
 
 
       - name: Apply local manifests (including minimal GKI)
