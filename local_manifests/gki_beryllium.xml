@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+
+  <!-- ========================= -->
+  <!-- Original Repositories     -->
+  <!-- ========================= -->
+
+  <remote name="aospm" fetch="https://github.com/cakroni1580" />
+
+  <!-- SDM845 generic device repo -->
+  <project path="device/generic/sdm845"
+           name="android_device_generic_sdm845"
+           revision="main"
+           remote="aospm"
+           groups="default" />
+
+  <project path="external/tinyhal"
+           name="tinyhal"
+           revision="master"
+           remote="aospm"
+           groups="default" />
+
+  <project path="external/vibrator-ff"
+           name="external_vibrator-ff"
+           revision="main"
+           remote="aospm"
+           groups="default" />
+
+
+  <!-- ========================= -->
+  <!-- Added Minimal GKI AOSP    -->
+  <!-- ========================= -->
+
+  <!-- Core build system -->
+  <project path="build/make"
+           name="platform/build"
+           groups="pdk" />
+
+  <!-- System core (init, ueventd, etc) -->
+  <project path="system/core"
+           name="platform/system/core"
+           groups="pdk" />
+
+  <!-- mkbootimg (required for vendor_boot, dtbo) -->
+  <project path="system/tools/mkbootimg"
+           name="platform/system/tools/mkbootimg" />
+
+  <!-- Clang prebuilt -->
+  <project path="prebuilts/clang/host/linux-x86"
+           name="platform/prebuilts/clang/host/linux-x86" />
+
+  <!-- Prebuilt GKI kernels folder (references Image.gz + modules) -->
+  <project path="prebuilts/kernel"
+           name="platform/prebuilts/kernel" />
+
+</manifest>
