@@ -74,7 +74,7 @@ jobs:
       - name: Clone minimal AOSP for vendor
         run: |
           mkdir -p aosp && cd aosp
-          repo init -u https://github.com/cakroni1580/platform_manifest.git --depth=1
+          repo init -u https://github.com/cakroni1580/platform_manifest.git -b aospm/booting --depth=1 -m aospm.xml
           repo sync -c --no-tags --optimized-fetch --prune --force-sync -j4 
 
       - name: Build vendor.img
