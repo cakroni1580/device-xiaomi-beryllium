@@ -1,27 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <manifest>
   <remote name="aosp" fetch=".." review="https://android-review.googlesource.com/"/>
-  <remote name="aospm" fetch="https://github.com/aospm"/>
-
   <default remote="aosp" revision="master" sync-j="4"/>
-
-  <!-- Device utama yang lo pakai -->
-  <project name="android_device_generic_sdm845"
-           path="device/generic/sdm845"
-           remote="aospm"
-           revision="35f873ec6f3211ffbaaa21ad5498c47d3614db52"
-           upstream="main"
-           dest-branch="main"
-           groups="default,local::aospm"/>
-
-  <!-- External vibrator (dipakai AOSPM generic) -->
-  <project name="external_vibrator-ff"
-           path="external/vibrator-ff"
-           remote="aospm"
-           revision="aa1fd8d7cc1b59167dfe5ed9f802c9ed2f3f3fb9"
-           upstream="main"
-           dest-branch="main"
-           groups="default,local::aospm"/>
 
   <!-- Build system dasar -->
   <project name="platform/build"
@@ -36,17 +16,6 @@
     <linkfile src="envsetup.sh" dest="build/envsetup.sh"/>
     <linkfile src="target" dest="build/target"/>
     <linkfile src="tools" dest="build/tools"/>
-  </project>
-
-  <project name="platform/build/bazel"
-           path="build/bazel"
-           revision="f78614cb61599a360dec2b513486086905ca66bc"
-           upstream="master"
-           dest-branch="master"
-           groups="pdk">
-    <linkfile src="bazel.WORKSPACE" dest="WORKSPACE"/>
-    <linkfile src="bazel.sh" dest="tools/bazel"/>
-    <linkfile src="bazel.BUILD" dest="BUILD"/>
   </project>
 
   <project name="platform/build/bazel_common_rules"
