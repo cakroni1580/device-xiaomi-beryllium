@@ -74,6 +74,7 @@ jobs:
       - name: Clone minimal AOSP for vendor
         run: |
           mkdir -p aosp && cd aosp
+          repo init -u file://$GITHUB_WORKSPACE/minimal.xml --depth=1
           mkdir -p .repo/local_manifests
           cp -r $GITHUB_WORKSPACE/local_manifests/* .repo/local_manifests/
           repo sync -c --no-tags --optimized-fetch --prune --force-sync -j4 
