@@ -71,12 +71,11 @@ jobs:
           sudo docker system prune -af || true
           df -h
         
-      - name: Inject local manifests
+      - name: Clone minimal AOSP for vendor
         run: |
-          mkdir -p aosp
-          cd aosp
-          mkdir -p .repo/local_manifests
-          cp -r $GITHUB_WORKSPACE/local_manifests/* .repo/local_manifests/
+          mkdir -p aosp && cd aosp
+          repo init -u https://android.googlesource.com/platform/manifest -b master --depth=1
+          git clone https://github.com/cakroni1580/android-local-manifests.git .repo/local_manifests -b master
           repo sync -c --no-tags --optimized-fetch --prune --force-sync -j4 
 
       - name: Build vendor.img
