@@ -90,7 +90,7 @@ jobs:
         run: |
           cd aosp
           repo sync -c -j4 --no-tags --no-clone-bundle --optimized-fetch --prune --fail-fast \
-          --smart-sync --force-sync
+          --force-sync
 
       - name: Build vendor.img
         run: |
