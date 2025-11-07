@@ -21,6 +21,17 @@ jobs:
           repository: cakroni1580/device-xiaomi-beryllium
           ref: master
 
+      - name: Maximize Build Space
+        run: |
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+          remove-docker-images: 'true'
+          remove-large-packages: 'true'
+          remove-swapfile: 'true'
+          remove-cached-tools: 'false'
+          verbose: 'true'   
 
       - name: Install dependencies
         run: |
