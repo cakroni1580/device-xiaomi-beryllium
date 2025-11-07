@@ -77,7 +77,7 @@ jobs:
           cd aosp
           repo init -u https://android.googlesource.com/platform/manifest -b android-platform-14.0.0_r23 --depth=1
           git clone https://github.com/cakroni1580/android-local-manifests.git .repo/local_manifests -b master
-          repo sync -c -j$(nproc) 
+          repo sync -c --no-tags --optimized-fetch --prune --force-sync --depth=1 -j4 
 
       - name: Build vendor.img
         run: |
