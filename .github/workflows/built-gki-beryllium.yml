@@ -70,15 +70,10 @@ jobs:
           sudo rm -rf /opt/microsoft
           sudo docker system prune -af || true
           df -h
-    
-      - name: Prepare AOSP cync
-        run: |
-          mkdir -p aosp
-          cd aosp
-          repo init -u https://android.googlesource.com/platform/manifest -b android-platform-14.0.0_r23 --depth=1
         
       - name: Inject local manifests
         run: |
+          mkdir -p aosp
           cd aosp
           mkdir -p .repo/local_manifests
           cp -r $GITHUB_WORKSPACE/local_manifests/* .repo/local_manifests/
