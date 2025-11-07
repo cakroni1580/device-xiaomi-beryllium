@@ -54,7 +54,7 @@ jobs:
 
       - name: Apply platform manifests (including minimal GKI)
         run: |
-          cd aosp
+          mkdir -p aosp && cd aosp
           mkdir -p .repo/platform_manifests
           cp -r $GITHUB_WORKSPACE/platform_manifests/* .repo/platform_manifests/
 
