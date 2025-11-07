@@ -52,20 +52,22 @@ jobs:
           sudo swapon /swapfile
           free -h
 
-      - name: Apply platform manifests (including minimal GKI)
+      - name: Prepare AOSP dir
         run: |
-          mkdir -p aosp && cd aosp
-          mkdir -p .repo/platform_manifests
-          cp -r $GITHUB_WORKSPACE/platform_manifests/* .repo/platform_manifests/
+          mkdir -p aosp
+          cd aosp
+          repo init -u https://android.googlesource.com/platform/manifest -b master --depth=1
 
-
-      - name: Apply local manifests (including minimal GKI)
+      - name: Copy Manifests
         run: |
           cd aosp
           mkdir -p .repo/local_manifests
           cp -r $GITHUB_WORKSPACE/local_manifests/* .repo/local_manifests/
 
-      - name: Repo Sync (RAM-safe)
+          mkdir -p .repo/platform_manifests
+          cp -r $GITHUB_WORKSPACE/platform_manifests/* .repo/platform_manifests/
+
+      - name: Sync AOSP
         run: |
           cd aosp
           repo sync -c -j4 --no-tags --no-clone-bundle --optimized-fetch --prune --fail-fast
